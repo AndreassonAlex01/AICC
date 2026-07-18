@@ -11,7 +11,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 px-4 py-3 backdrop-blur">
-        <h1 className="text-lg font-semibold">NutriSnap</h1>
+        <h1 className="text-lg font-semibold">AICC</h1>
         <button onClick={toggleDarkMode} aria-label="Toggle dark mode" className="text-lg">
           🌓
         </button>
