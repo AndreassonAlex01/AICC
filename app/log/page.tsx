@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { MealItemRow } from "@/components/meal-item-row";
 import type { FoodItem } from "@/lib/types";
-
 import { useRouter } from "next/navigation";
 import { saveMeal } from "@/lib/meals";
 
@@ -11,6 +10,7 @@ export default function LogPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [items, setItems] = useState<FoodItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
@@ -38,6 +38,7 @@ async function handleSave() {
     if (!file) return;
     setPreview(URL.createObjectURL(file));
     setLoading(true);
+    setError(null);
     try {
       const imageBase64 = await fileToBase64(file);
       const res = await fetch("/api/analyze-meal", {
@@ -46,7 +47,13 @@ async function handleSave() {
         body: JSON.stringify({ imageBase64 }),
       });
       const data = await res.json();
+      if (!res.ok || !data.items) {
+        setError(data.error === "Unauthorized" ? "Please sign in to log a meal." : (data.error ?? "Something went wrong analyzing that photo."));
+        return;
+      }
       setItems(data.items);
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -62,13 +69,14 @@ async function handleSave() {
       <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} />
       {preview && <img src={preview} alt="Selected meal" className="w-full rounded-lg" />}
       {loading && <p className="text-sm text-muted-foreground">Analyzing photo…</p>}
+      {error && <p className="text-sm text-red-500">{error}</p>}
       {items.map((item, i) => (
         <MealItemRow key={i} item={item} onChange={(updated) => updateItem(i, updated)} />
       ))}
       {items.length > 0 && (
-  <button onClick={handleSave} disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground">
-    {saving ? "Saving…" : "Add to today's log"}
-  </button>
+      <button onClick={handleSave} disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground">
+      {saving ? "Saving…" : "Add to today's log"}
+      </button>
 )}
     </div>
   );
