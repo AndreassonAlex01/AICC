@@ -23,7 +23,7 @@ export function MealItemRow({ item, onChange }: { item: FoodItem; onChange: (ite
       <input
         value={item.name}
         onChange={(e) => onChange({ ...item, name: e.target.value })}
-        className="flex-1 bg-transparent font-medium"
+        className="min-w-0 flex-1 truncate bg-transparent font-medium"
       />
       <Slider
         min={10} max={1000} value={[item.portionGrams]}
