@@ -1,0 +1,48 @@
+# public/openapi.yaml
+openapi: 3.0.3
+info:
+  title: Meal Nutrition Partner API
+  version: 1.0.0
+paths:
+  /api/v1/meals/analyze:
+    post:
+      summary: Analyze a meal photo and return nutrition estimates
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                imageBase64: { type: string }
+              required: [imageBase64]
+      responses:
+        "200":
+          description: Nutrition breakdown
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string }
+                        portionGrams: { type: number }
+                        calories: { type: integer }
+                        proteinGrams: { type: number }
+                        carbsGrams: { type: number }
+                        fatGrams: { type: number }
+                        confidence: { type: string, enum: [low, medium, high] }
+        "401":
+          description: Missing or invalid API key
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
