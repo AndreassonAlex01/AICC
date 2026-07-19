@@ -26,7 +26,7 @@ export default function HistoryPage() {
   }, [range]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="animate-page-in flex flex-col gap-4">
       <h2 className="text-xl font-semibold">History</h2>
       <div className="flex gap-2">
         {RANGES.map((r) => (

@@ -45,7 +45,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="animate-page-in flex flex-col gap-4">
       <h2 className="text-xl font-semibold">Tell us about yourself</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input type="number" placeholder="Height (cm)" required value={heightCm} onChange={(e) => setHeightCm(e.target.value)} className="rounded-lg border px-3 py-2" />

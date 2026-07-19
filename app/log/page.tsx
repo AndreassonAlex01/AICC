@@ -64,7 +64,7 @@ async function handleSave() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="animate-page-in flex flex-col gap-4">
       <h2 className="text-xl font-semibold">Log a meal</h2>
       <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} />
       {preview && <img src={preview} alt="Selected meal" className="w-full rounded-lg" />}

@@ -30,7 +30,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="animate-page-in flex flex-col gap-4">
       <h2 className="text-xl font-semibold">{mode === "signUp" ? "Create account" : "Sign in"}</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input

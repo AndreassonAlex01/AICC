@@ -37,7 +37,7 @@ export default function ProfilePage() {
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="animate-page-in flex flex-col gap-4">
       <h2 className="text-xl font-semibold">Profile</h2>
       {profile && (
         <div className="rounded-lg border p-4 text-sm">

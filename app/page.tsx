@@ -41,7 +41,7 @@ export default function TodayPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="animate-page-in flex flex-col gap-4">
       <h2 className="text-xl font-semibold">Today</h2>
       {streak > 0 && <p className="text-sm text-muted-foreground">🔥 {streak}-day streak</p>}
       <div className="rounded-lg border p-4">
