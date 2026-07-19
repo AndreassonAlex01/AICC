@@ -2,6 +2,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
+import { Inter, Barlow_Condensed } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
+const barlowCondensed = Barlow_Condensed({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-display" });
 
 export const metadata: Metadata = {
   title: "Alexander Challenge",
@@ -32,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className={`${inter.variable} ${barlowCondensed.variable} min-h-screen bg-background font-sans antialiased`}>
         <AppShell>{children}</AppShell>
       </body>
     </html>

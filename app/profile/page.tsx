@@ -45,7 +45,7 @@ export default function ProfilePage() {
           <p>Protein goal: {profile.daily_protein_goal} g</p>
         </div>
       )}
-      <button onClick={handleSignOut} className="rounded-lg border px-4 py-2 text-sm">
+      <button onClick={handleSignOut} className="btn-press rounded-lg bg-primary px-4 py-2 text-primary-foreground">
         Sign out
       </button>
     </div>

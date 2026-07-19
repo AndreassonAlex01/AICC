@@ -80,7 +80,7 @@ async function handleSave() {
         <MealItemRow key={i} item={item} onChange={(updated) => updateItem(i, updated)} />
       ))}
       {items.length > 0 && (
-      <button onClick={handleSave} disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground">
+      <button onClick={handleSave} disabled={saving} className="btn-press rounded-lg bg-primary px-4 py-2 text-primary-foreground">
       {saving ? "Saving…" : "Add to today's log"}
       </button>
 )}

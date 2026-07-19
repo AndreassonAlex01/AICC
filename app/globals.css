@@ -7,6 +7,24 @@
 
 @custom-variant dark (&:is(.dark *));
 
+:root {
+  --background: #FAFAF7;
+  --foreground: #1A1A16;
+  --primary: #3D7A3D;
+  --primary-foreground: #FAFAF7;
+  --destructive: #B33A3A;
+  --accent: #E8A33D;
+  --border: #1A1A16;
+  --font-sans: var(--font-body);
+}
+/* add to app/globals.css, same place as above */
+.btn-press {
+  transition: transform 150ms ease-out;
+}
+.btn-press:active {
+  transform: scale(0.96);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

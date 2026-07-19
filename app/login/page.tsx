@@ -13,24 +13,35 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const supabase = createClient();
-    const { error } =
-      mode === "signUp"
-        ? await supabase.auth.signUp({ email, password })
-        : await supabase.auth.signInWithPassword({ email, password });
+  e.preventDefault();
+  setError(null);
+  setLoading(true);
+  const supabase = createClient();
+  const { data: authData, error } =
+    mode === "signUp"
+      ? await supabase.auth.signUp({ email, password })
+      : await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
     setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    router.push("/onboarding"); // Step 4's page — new users set their goals right after this
+    setError(error.message);
+    return;
   }
 
+  // A returning user already has a profile saved from a previous onboarding —
+  // send them straight to the dashboard instead of making them retype everything.
+  // Only someone with no profile row yet (a brand-new signup) goes to /onboarding.
+  const userId = authData.user?.id;
+  const { data: profile } = userId
+    ? await supabase.from("profiles").select("id").eq("id", userId).maybeSingle()
+    : { data: null };
+
+  setLoading(false);
+  router.push(profile ? "/" : "/onboarding");
+}
+
   return (
-    <div className="animate-page-in flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <h2 className="text-xl font-semibold">{mode === "signUp" ? "Create account" : "Sign in"}</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
@@ -44,9 +55,9 @@ export default function LoginPage() {
           className="rounded-lg border px-3 py-2"
         />
         {error && <p className="text-sm text-red-500">{error}</p>}
-        <button type="submit" disabled={loading} className="rounded-lg bg-primary px-4 py-2 text-primary-foreground">
-          {loading ? "…" : mode === "signUp" ? "Sign up" : "Sign in"}
-        </button>
+        <button type="submit" disabled={loading} className="btn-press rounded-lg bg-primary px-4 py-2 text-primary-foreground">
+  {loading ? "…" : mode === "signUp" ? "Sign up" : "Sign in"}
+</button>
       </form>
       <button
         onClick={() => setMode(mode === "signUp" ? "signIn" : "signUp")}
