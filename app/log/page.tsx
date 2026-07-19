@@ -66,7 +66,13 @@ async function handleSave() {
   return (
     <div className="animate-page-in flex flex-col gap-4">
       <h2 className="text-xl font-semibold">Log a meal</h2>
-      <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} />
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileChange}
+        className="text-sm text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+      />
       {preview && <img src={preview} alt="Selected meal" className="w-full rounded-lg" />}
       {loading && <p className="text-sm text-muted-foreground">Analyzing photo…</p>}
       {error && <p className="text-sm text-red-500">{error}</p>}
