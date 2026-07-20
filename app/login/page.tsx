@@ -27,7 +27,7 @@ export default function LoginPage() {
     setError(error.message);
     return;
   }
-
+  // test test hellooooo
   // A returning user already has a profile saved from a previous onboarding —
   // send them straight to the dashboard instead of making them retype everything.
   // Only someone with no profile row yet (a brand-new signup) goes to /onboarding.

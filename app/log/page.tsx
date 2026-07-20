@@ -81,7 +81,7 @@ async function handleSave() {
       ))}
       {items.length > 0 && (
       <button onClick={handleSave} disabled={saving} className="btn-press rounded-lg bg-primary px-4 py-2 text-primary-foreground">
-      {saving ? "Saving…" : "Add to today's log"}
+      {saving ? "Saving…" : "Add to today's log"} 
       </button>
 )}
     </div>
