@@ -1,10 +1,10 @@
 // app/login/page.tsx
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<"signUp" | "signIn">(
@@ -69,5 +69,13 @@ export default function LoginPage() {
         {mode === "signUp" ? "Already have an account? Sign in" : "Need an account? Sign up"}
       </button>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
