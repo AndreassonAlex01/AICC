@@ -41,10 +41,14 @@ export async function GET(req: NextRequest) {
   }
   const weeklyTotals = [...byDate.entries()].map(([date, totals]) => ({ date, ...totals }));
 
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({ error: "AI summary is not configured" }, { status: 503 });
+  }
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
+      "x-api-key": process.env.ANTHROPIC_API_KEY,
       "anthropic-version": "2023-06-01",
       "content-type": "application/json",
     },
@@ -59,8 +63,15 @@ Write one short, encouraging sentence noting a trend (e.g. protein intake, consi
     }),
   });
 
+  if (!res.ok) {
+    return NextResponse.json({ error: "Failed to generate weekly summary" }, { status: 502 });
+  }
+
   const data = await res.json();
-  const textBlock = data.content.find((c: any) => c.type === "text");
+  const textBlock = data.content?.find((c: any) => c.type === "text");
+  if (!textBlock) {
+    return NextResponse.json({ error: "Failed to generate weekly summary" }, { status: 502 });
+  }
   const summary = textBlock.text.trim();
 
   await supabase.from("weekly_summaries").insert({ user_id: user.id, week_start: weekKey, summary });

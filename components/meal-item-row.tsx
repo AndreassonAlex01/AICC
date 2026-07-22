@@ -1,8 +1,17 @@
 // components/meal-item-row.tsx
+import { X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import type { FoodItem } from "@/lib/types";
 
-export function MealItemRow({ item, onChange }: { item: FoodItem; onChange: (item: FoodItem) => void }) {
+export function MealItemRow({
+  item,
+  onChange,
+  onRemove,
+}: {
+  item: FoodItem;
+  onChange: (item: FoodItem) => void;
+  onRemove?: () => void;
+}) {
   const confidenceColor = { high: "bg-green-500", medium: "bg-yellow-500", low: "bg-red-500" }[item.confidence];
 
   function handlePortionChange(newPortionGrams: number) {
@@ -30,6 +39,16 @@ export function MealItemRow({ item, onChange }: { item: FoodItem; onChange: (ite
         onValueChange={(value) => handlePortionChange(Array.isArray(value) ? value[0] : value)}
       />
       <span className="text-sm text-muted-foreground">{item.calories} kcal</span>
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`Remove ${item.name}`}
+          className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+        >
+          <X size={14} />
+        </button>
+      )}
     </div>
   );
 }

@@ -1,12 +1,15 @@
 // app/login/page.tsx
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"signUp" | "signIn">("signUp");
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<"signUp" | "signIn">(
+    searchParams.get("mode") === "signIn" ? "signIn" : "signUp"
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

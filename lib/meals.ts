@@ -81,3 +81,62 @@ export async function getHistoricalTotals(userId: string, days: number) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, totals]) => ({ date, ...totals }));
 }
+
+export interface LoggedMealItem {
+  id: string;
+  name: string;
+  portionGrams: number;
+  calories: number;
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+  confidence: "low" | "medium" | "high";
+}
+
+export interface LoggedDay {
+  date: string;
+  items: LoggedMealItem[];
+}
+
+export async function getRecentMeals(userId: string, days: number): Promise<LoggedDay[]> {
+  const supabase = createClient();
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const { data } = await supabase
+    .from("meals")
+    .select("logged_at, meal_items(id, name, portion_grams, calories, protein_grams, carbs_grams, fat_grams, confidence)")
+    .eq("user_id", userId)
+    .gte("logged_at", since.toISOString())
+    .order("logged_at", { ascending: false });
+
+  const byDate = new Map<string, LoggedMealItem[]>();
+  for (const meal of data ?? []) {
+    const date = meal.logged_at.split("T")[0];
+    const items = (byDate.get(date) ?? []);
+    for (const item of meal.meal_items) {
+      items.push({
+        id: item.id,
+        name: item.name,
+        portionGrams: item.portion_grams,
+        calories: item.calories,
+        proteinGrams: item.protein_grams,
+        carbsGrams: item.carbs_grams,
+        fatGrams: item.fat_grams,
+        confidence: item.confidence,
+      });
+    }
+    byDate.set(date, items);
+  }
+
+  return [...byDate.entries()]
+    .filter(([, items]) => items.length > 0)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([date, items]) => ({ date, items }));
+}
+
+export async function deleteMealItem(itemId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("meal_items").delete().eq("id", itemId);
+  if (error) throw error;
+}
