@@ -8,7 +8,7 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://qhaaxqckkupsjjvopvrf.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_-7FQBhppNoOsc2IIS0I1IA_Wk1Li9s3",
-        "EXPO_PUBLIC_API_BASE_URL": "https://REPLACE-WITH-YOUR-DEPLOYED-URL"
+        "EXPO_PUBLIC_API_BASE_URL": "https://ai-caloriecounter.vercel.app"
       }
     },
     "development": {

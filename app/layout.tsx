@@ -8,8 +8,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
 const barlowCondensed = Barlow_Condensed({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-display" });
 
 export const metadata: Metadata = {
-  title: "Alexander Challenge",
-  description: "AI-powered macronutrient tracker",
+  title: "AICC",
+  description: "AI-powered meal and macro tracker",
 };
 
 export const viewport: Viewport = {

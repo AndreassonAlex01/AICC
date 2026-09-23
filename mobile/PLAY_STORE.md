@@ -30,14 +30,26 @@ public **https** URL — `192.168.x.x` / `localhost` won't work for anyone else 
    | Name | Required | Where to get it |
    |---|---|---|
    | `ANTHROPIC_API_KEY` | yes | console.anthropic.com → API Keys |
-   | `SUPABASE_SERVICE_ROLE_KEY` | yes (account deletion) | Supabase → Project Settings → API → `service_role`. **Server-only secret — never put it in the mobile app or a `NEXT_PUBLIC_` variable.** |
+   | `SUPABASE_SERVICE_ROLE_KEY` | yes (account deletion) | Supabase → Project Settings → **API Keys** → **Secret keys** → copy the `sb_secret_…` key (create one with "New secret key" if none exists). If your dashboard still shows a "Legacy" tab, its `service_role` key works too. Keep the variable name `SUPABASE_SERVICE_ROLE_KEY` either way. **Server-only secret — never put it in the mobile app, a `NEXT_PUBLIC_` variable, or a chat/message.** |
    | `NEXT_PUBLIC_CONTACT_EMAIL` | optional | Shown on /privacy and /delete-account. Leave unset to point people at the contact email on your Play listing instead. |
    | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | optional | Built-in defaults already point at your project. |
 
-4. Deploy. Open `https://<your-url>/privacy` and `https://<your-url>/delete-account` to confirm they load.
+4. Deploy. Open `https://<your-url>/privacy` and `https://<your-url>/delete-account` **in a private/incognito window**
+   (so you're not logged into Vercel) to confirm they load. Two common traps:
+   - **Deployment Protection**: if you're sent to a Vercel login page, go to the project → **Settings → Deployment
+     Protection** → set **Vercel Authentication** to **Disabled** → Save. Left on, the phone app, Google's reviewers and
+     password-reset links are all locked out. (The app has its own login, so this is safe.)
+   - **Use the stable domain** (project → **Domains**, e.g. `<project-name>.vercel.app`), *not* the long per-deployment
+     URL with a random hash in it — those are snapshots of one build and return `410 Gone` once that deployment is replaced.
+   - **Renaming a Vercel project does not rename its address.** The old `*.vercel.app` address keeps working; to get an
+     address matching the new name, add it under **Settings → Domains → Add**, then update every place listed in step 6.
 5. **Supabase → Authentication → URL Configuration**: set **Site URL** to `https://<your-url>` and add
    `https://<your-url>/reset-password` to **Redirect URLs** (password reset breaks without it).
-6. Edit `mobile/eas.json` → replace `https://REPLACE-WITH-YOUR-DEPLOYED-URL` with your URL (no trailing slash).
+6. `mobile/eas.json` → `EXPO_PUBLIC_API_BASE_URL` must be your final production URL (no trailing slash). It is currently
+   `https://ai-caloriecounter.vercel.app` (Vercel redirects the older `aicc-8znh` address to it, but the phone app must
+   call the final address directly). **If you ever change the address, update it in all of these:** `mobile/eas.json`,
+   Supabase (Site URL + the `/reset-password` Redirect URL), and the Play Console (privacy policy and account-deletion
+   links). The build guard will refuse a placeholder or `http` URL.
 
 ## Step 2 — Build and test the app
 
