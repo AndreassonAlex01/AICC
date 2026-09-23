@@ -18,3 +18,12 @@ export async function requireApiKey(req: NextRequest) {
   if (!data?.active) return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
   return null; // null means "passed, continue"
 }
+
+// The web app authenticates via the SSR cookie session; the mobile app has
+// no cookies and sends its Supabase access token as a Bearer header instead.
+// supabase.auth.getUser(jwt?) validates either — pass this through so one
+// route handler serves both clients.
+export function getBearerToken(req: NextRequest): string | undefined {
+  const header = req.headers.get("authorization");
+  return header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+}

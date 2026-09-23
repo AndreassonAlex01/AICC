@@ -1,10 +1,14 @@
-// lib/meals.ts
-import { createClient } from "@/lib/supabase/client";
+// lib/meals.ts — ported from the web app's lib/meals.ts, but using the one
+// shared `supabase` singleton instead of calling createClient() per function
+// (that per-call pattern was the root cause of the "inconsistent server
+// connection / logins" bug — see theme/tokens.ts sibling note in lib/auth.tsx).
+import { supabase } from "@/lib/supabase";
 import type { FoodItem } from "@/lib/types";
 
 export async function saveMeal(items: FoodItem[]) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("Not signed in");
 
   const { data: meal, error: mealError } = await supabase
@@ -30,7 +34,6 @@ export async function saveMeal(items: FoodItem[]) {
 }
 
 export async function getTodayTotals(userId: string) {
-  const supabase = createClient();
   const today = new Date().toISOString().split("T")[0];
   const { data } = await supabase
     .from("meals")
@@ -49,14 +52,11 @@ export async function getTodayTotals(userId: string) {
 }
 
 export async function getLoggedDates(userId: string): Promise<string[]> {
-  const supabase = createClient();
   const { data } = await supabase.from("meals").select("logged_at").eq("user_id", userId);
   return (data ?? []).map((m) => m.logged_at.split("T")[0]);
 }
 
-// add to lib/meals.ts
 export async function getHistoricalTotals(userId: string, days: number) {
-  const supabase = createClient();
   const since = new Date();
   since.setDate(since.getDate() - days);
 
@@ -99,7 +99,6 @@ export interface LoggedDay {
 }
 
 export async function getRecentMeals(userId: string, days: number): Promise<LoggedDay[]> {
-  const supabase = createClient();
   const since = new Date();
   since.setDate(since.getDate() - days);
 
@@ -113,7 +112,7 @@ export async function getRecentMeals(userId: string, days: number): Promise<Logg
   const byDate = new Map<string, LoggedMealItem[]>();
   for (const meal of data ?? []) {
     const date = meal.logged_at.split("T")[0];
-    const items = (byDate.get(date) ?? []);
+    const items = byDate.get(date) ?? [];
     for (const item of meal.meal_items) {
       items.push({
         id: item.id,
@@ -136,7 +135,6 @@ export async function getRecentMeals(userId: string, days: number): Promise<Logg
 }
 
 export async function deleteMealItem(itemId: string) {
-  const supabase = createClient();
   const { data: item, error: fetchError } = await supabase
     .from("meal_items")
     .select("meal_id")
@@ -158,4 +156,19 @@ export async function deleteMealItem(itemId: string) {
   if (count === 0) {
     await supabase.from("meals").delete().eq("id", item.meal_id);
   }
+}
+
+export async function updateMealItem(itemId: string, item: FoodItem) {
+  const { error } = await supabase
+    .from("meal_items")
+    .update({
+      name: item.name,
+      portion_grams: item.portionGrams,
+      calories: item.calories,
+      protein_grams: item.proteinGrams,
+      carbs_grams: item.carbsGrams,
+      fat_grams: item.fatGrams,
+    })
+    .eq("id", itemId);
+  if (error) throw error;
 }

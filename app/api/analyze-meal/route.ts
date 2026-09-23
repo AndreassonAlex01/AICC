@@ -1,13 +1,14 @@
 // app/api/analyze-meal/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getBearerToken } from "@/lib/apiAuth";
 import { z } from "zod";
 
 const RequestSchema = z.object({ imageBase64: z.string().min(1) });
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser(getBearerToken(req));
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const parsed = RequestSchema.safeParse(await req.json());
@@ -30,10 +31,14 @@ Respond with ONLY JSON, no other text, in this exact shape:
   ]
 }`;
 
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({ error: "AI photo analysis is not configured" }, { status: 503 });
+  }
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
+      "x-api-key": process.env.ANTHROPIC_API_KEY,
       "anthropic-version": "2023-06-01",
       "content-type": "application/json",
     },
@@ -50,8 +55,20 @@ Respond with ONLY JSON, no other text, in this exact shape:
     }),
   });
 
+  if (!res.ok) {
+    return NextResponse.json({ error: "Failed to analyze that photo" }, { status: 502 });
+  }
+
   const data = await res.json();
-  const textBlock = data.content.find((c: any) => c.type === "text");
-  const result = JSON.parse(textBlock.text.replace(/```json|```/g, "").trim());
-  return NextResponse.json(result);
+  const textBlock = data.content?.find((c: any) => c.type === "text");
+  if (!textBlock) {
+    return NextResponse.json({ error: "Failed to analyze that photo" }, { status: 502 });
+  }
+
+  try {
+    const result = JSON.parse(textBlock.text.replace(/```json|```/g, "").trim());
+    return NextResponse.json(result);
+  } catch {
+    return NextResponse.json({ error: "Failed to analyze that photo" }, { status: 502 });
+  }
 }
