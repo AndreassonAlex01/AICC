@@ -8,6 +8,32 @@ import type { FoodItem } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { saveMeal } from "@/lib/meals";
 
+// Vercel rejects request bodies over ~4.5 MB, and a raw phone photo (plus
+// base64's +33%) routinely exceeds that. 1280px is plenty for food
+// recognition and lands at a few hundred KB; re-encoding as JPEG also keeps
+// the API's hardcoded image/jpeg media type honest for PNG/WebP uploads.
+const MAX_DIMENSION = 1280;
+
+async function compressImageToBase64(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.75));
+  if (!blob) throw new Error("Image compression failed");
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 export default function LogPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [items, setItems] = useState<FoodItem[]>([]);
@@ -26,31 +52,41 @@ async function handleSave() {
   }
 }
 
-  function fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(",")[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setPreview(URL.createObjectURL(file));
     setLoading(true);
     setError(null);
+
+    let imageBase64: string;
     try {
-      const imageBase64 = await fileToBase64(file);
+      imageBase64 = await compressImageToBase64(file);
+    } catch {
+      setError("Couldn't read that photo — try a JPEG or PNG image.");
+      setLoading(false);
+      return;
+    }
+
+    try {
       const res = await fetch("/api/analyze-meal", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ imageBase64 }),
       });
-      const data = await res.json();
+      // Platform-level failures (413 too large, 504 timeout) come back as
+      // plain text, not JSON — don't let res.json() throw on those.
+      const raw = await res.text();
+      let data: { items?: FoodItem[]; error?: string } = {};
+      try {
+        data = JSON.parse(raw);
+      } catch {}
+
       if (!res.ok || !data.items) {
-        setError(data.error === "Unauthorized" ? "Please sign in to log a meal." : (data.error ?? "Something went wrong analyzing that photo."));
+        if (res.status === 413) setError("That photo is too large to upload — try a smaller one.");
+        else if (res.status === 504) setError("The analysis timed out — please try again.");
+        else if (data.error === "Unauthorized") setError("Please sign in to log a meal.");
+        else setError(data.error ?? "Something went wrong analyzing that photo.");
         return;
       }
       setItems(data.items);
