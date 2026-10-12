@@ -10,9 +10,31 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
-import { Trash2 } from "lucide-react";
+import { Check, Pencil, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { getHistoricalTotals, getRecentMeals, deleteMealItem, type LoggedDay } from "@/lib/meals";
+import {
+  getHistoricalTotals,
+  getRecentMeals,
+  deleteMealItem,
+  updateMealItem,
+  type LoggedDay,
+  type LoggedMealItem,
+} from "@/lib/meals";
+
+const MAX_GRAMS = 5000;
+
+// Macros scale linearly with portion size. Always scale from the saved
+// item (not the previous keystroke) so rounding can't drift while typing.
+function scaleToGrams(item: LoggedMealItem, grams: number) {
+  const ratio = item.portionGrams > 0 ? grams / item.portionGrams : 1;
+  return {
+    portionGrams: grams,
+    calories: Math.round(item.calories * ratio),
+    proteinGrams: +(item.proteinGrams * ratio).toFixed(1),
+    carbsGrams: +(item.carbsGrams * ratio).toFixed(1),
+    fatGrams: +(item.fatGrams * ratio).toFixed(1),
+  };
+}
 
 const RANGES = [
   { label: "Week", days: 7 },
@@ -45,6 +67,10 @@ export default function HistoryPage() {
   const [dailyTotals, setDailyTotals] = useState<{ date: string; calories: number; protein: number }[]>([]);
   const [loggedDays, setLoggedDays] = useState<LoggedDay[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [gramsInput, setGramsInput] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function load() {
     const supabase = createClient();
@@ -70,6 +96,28 @@ export default function HistoryPage() {
       await load();
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  function startEdit(item: LoggedMealItem) {
+    setEditingId(item.id);
+    setGramsInput(String(item.portionGrams));
+    setError(null);
+  }
+
+  async function handleSaveEdit(item: LoggedMealItem) {
+    const grams = Number(gramsInput);
+    if (!Number.isFinite(grams) || grams <= 0 || grams > MAX_GRAMS) return;
+    setSavingId(item.id);
+    setError(null);
+    try {
+      await updateMealItem(item.id, scaleToGrams(item, grams));
+      setEditingId(null);
+      await load();
+    } catch {
+      setError("Couldn't save that change — please try again.");
+    } finally {
+      setSavingId(null);
     }
   }
 
@@ -171,6 +219,7 @@ export default function HistoryPage() {
 
       <div className="flex flex-col gap-3">
         <h3 className="text-sm font-medium text-muted-foreground">Logged meals</h3>
+        {error && <p className="text-sm text-red-500">{error}</p>}
         {loggedDays.length === 0 && (
           <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
             No meals logged in this range yet.
@@ -180,25 +229,90 @@ export default function HistoryPage() {
           <div key={day.date} className="flex flex-col gap-2">
             <p className="text-xs font-medium text-muted-foreground">{formatDateLabel(day.date)}</p>
             <div className="flex flex-col gap-2">
-              {day.items.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-xl bg-muted/60 p-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.portionGrams}g · {item.calories} kcal · P{item.proteinGrams} C{item.carbsGrams} F{item.fatGrams}
-                    </p>
+              {day.items.map((item) => {
+                if (editingId === item.id) {
+                  const grams = Number(gramsInput);
+                  const valid = Number.isFinite(grams) && grams > 0 && grams <= MAX_GRAMS;
+                  const preview = valid ? scaleToGrams(item, grams) : null;
+                  return (
+                    <form
+                      key={item.id}
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSaveEdit(item);
+                      }}
+                      onKeyDown={(e) => e.key === "Escape" && setEditingId(null)}
+                      className="flex flex-col gap-2 rounded-xl bg-muted/60 p-3 ring-1 ring-primary/40"
+                    >
+                      <p className="truncate text-sm font-medium">{item.name}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min={1}
+                          max={MAX_GRAMS}
+                          step="any"
+                          autoFocus
+                          value={gramsInput}
+                          onChange={(e) => setGramsInput(e.target.value)}
+                          aria-label={`Grams of ${item.name}`}
+                          className="w-24 rounded-lg border bg-background px-2 py-1 text-sm tabular-nums outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                        />
+                        <span className="text-xs text-muted-foreground">g</span>
+                        <span className="text-xs text-muted-foreground">
+                          {preview
+                            ? `→ ${preview.calories} kcal · P${preview.proteinGrams} C${preview.carbsGrams} F${preview.fatGrams}`
+                            : `Enter 1–${MAX_GRAMS} g`}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          disabled={!valid || savingId === item.id}
+                          className="btn-press flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                        >
+                          <Check size={14} /> {savingId === item.id ? "Saving…" : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(null)}
+                          className="flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+                        >
+                          <X size={14} /> Cancel
+                        </button>
+                      </div>
+                    </form>
+                  );
+                }
+
+                return (
+                  <div key={item.id} className="flex items-center gap-3 rounded-xl bg-muted/60 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.portionGrams}g · {item.calories} kcal · P{item.proteinGrams} C{item.carbsGrams} F{item.fatGrams}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => startEdit(item)}
+                      aria-label={`Edit grams for ${item.name}`}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item.id)}
+                      disabled={deletingId === item.id}
+                      aria-label={`Remove ${item.name}`}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item.id)}
-                    disabled={deletingId === item.id}
-                    aria-label={`Remove ${item.name}`}
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}

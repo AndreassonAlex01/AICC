@@ -135,6 +135,24 @@ export async function getRecentMeals(userId: string, days: number): Promise<Logg
     .map(([date, items]) => ({ date, items }));
 }
 
+export async function updateMealItem(
+  itemId: string,
+  values: { portionGrams: number; calories: number; proteinGrams: number; carbsGrams: number; fatGrams: number }
+) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("meal_items")
+    .update({
+      portion_grams: values.portionGrams,
+      calories: values.calories,
+      protein_grams: values.proteinGrams,
+      carbs_grams: values.carbsGrams,
+      fat_grams: values.fatGrams,
+    })
+    .eq("id", itemId);
+  if (error) throw error;
+}
+
 export async function deleteMealItem(itemId: string) {
   const supabase = createClient();
   const { data: item, error: fetchError } = await supabase
